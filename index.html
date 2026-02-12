@@ -2,86 +2,99 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RetroCloud v1.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RetroCloud">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050507">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/526/526849.png">
+
+    <title>RetroCloud v26(1.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #050507; color: #f4f4f5; font-family: 'Inter', sans-serif; margin: 0; }
-        .glass { background: rgba(20, 20, 25, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+        body { 
+            background: #050507; color: #f4f4f5; font-family: 'Inter', sans-serif; margin: 0; 
+            -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none;
+        }
+        .glass { background: rgba(20, 20, 25, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
         
-        /* Layout Fix: Absolute CSS Definitionen */
-        .grid-main { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-        .mobile-view .grid-main { grid-template-columns: repeat(2, 1fr) !important; gap: 0.75rem !important; }
+        /* Layout Fixes */
+        .grid-main { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+        #app-root.mobile-view .grid-main { grid-template-columns: repeat(2, 1fr) !important; }
         
-        .game-card { cursor: pointer; border-radius: 1.5rem; background: #111114; padding: 1rem; transition: 0.2s; border: 1px solid transparent; }
-        .game-card:hover { border-color: #6366f1; background: #16161b; }
+        .game-card { cursor: pointer; border-radius: 1.5rem; background: #111114; padding: 1.2rem; border: 1px solid rgba(255,255,255,0.03); transition: 0.2s; }
+        .game-card:active { transform: scale(0.95); background: #1a1a1e; }
 
         #emu-layer { display: none; position: fixed; inset: 0; z-index: 9999; background: #000; }
         #game-container { width: 100vw; height: 100vh; }
         
-        /* Radio Animation */
-        .wave { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
-        .wave div { width: 2px; background: #6366f1; animation: wave-anim 1s infinite alternate; }
-        @keyframes wave-anim { from { height: 2px; } to { height: 12px; } }
+        /* Audio Visualizer */
+        .wave { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+        .wave div { width: 3px; background: #6366f1; animation: wave-anim 0.8s infinite alternate; border-radius: 10px; }
+        @keyframes wave-anim { from { height: 3px; } to { height: 14px; } }
     </style>
 </head>
 <body id="app-root">
 
-    <div id="main-ui" class="max-w-6xl mx-auto p-6">
-        <header class="flex flex-col md:flex-row justify-between items-center py-10 gap-6">
-            <div>
-                <h1 class="text-4xl font-black italic uppercase tracking-tighter">RetroCloud <span class="text-indigo-500">v26(1.0)</span></h1>
-                <div class="mt-2 flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                    <div class="wave"><div></div><div style="animation-delay:0.2s"></div><div style="animation-delay:0.4s"></div></div>
-                    <span class="text-[9px] font-bold uppercase tracking-widest">Lofi Station</span>
-                    <button onclick="toggleRadio()" id="radio-btn" class="text-[9px] bg-indigo-600 px-3 py-1 rounded-full font-black uppercase">Play</button>
-                </div>
-            </div>
-
-            <div class="flex gap-3">
-                <button onclick="changeLayout('pc')" class="glass px-4 py-2 rounded-xl text-[10px] font-bold">PC</button>
-                <button onclick="changeLayout('mobile')" class="glass px-4 py-2 rounded-xl text-[10px] font-bold">MOBILE</button>
-                <button onclick="toggleSettings(true)" class="bg-white text-black px-6 py-2 rounded-xl text-[10px] font-bold">SETTINGS</button>
+    <div id="main-ui" class="max-w-5xl mx-auto p-6 pb-24">
+        <header class="flex flex-col items-center py-12 gap-6 text-center">
+            <h1 class="text-5xl font-black italic uppercase tracking-tighter">RetroCloud <span class="text-indigo-500">v26(1.0)</span></h1>
+            
+            <div class="flex items-center gap-4 bg-zinc-900/50 p-2 rounded-2xl border border-white/5">
+                <div class="wave px-2"><div></div><div style="animation-delay:0.2s"></div><div style="animation-delay:0.4s"></div></div>
+                <button onclick="toggleRadio()" id="radio-btn" class="text-[10px] font-black uppercase bg-indigo-600 px-5 py-2 rounded-xl">Lofi Play</button>
             </div>
         </header>
 
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex bg-zinc-900 rounded-xl p-1 border border-white/5">
+                <button onclick="changeLayout('pc')" class="px-4 py-2 rounded-lg text-[9px] font-bold uppercase" id="btn-pc-nav">PC</button>
+                <button onclick="changeLayout('mobile')" class="px-4 py-2 rounded-lg text-[9px] font-bold uppercase" id="btn-mb-nav">Mobile</button>
+            </div>
+            <button onclick="toggleSettings(true)" class="glass px-5 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase">Settings</button>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
-            <label class="bg-indigo-600 p-6 rounded-3xl cursor-pointer hover:bg-indigo-500 transition-all text-center">
+            <label class="bg-indigo-600 p-8 rounded-[2rem] cursor-pointer active:bg-indigo-700 text-center shadow-xl shadow-indigo-900/20">
                 <input type="file" id="file-save" class="hidden" accept=".gba,.gb,.gbc,.sfc,.nes,.md,.zip">
-                <span class="block text-xs font-black uppercase tracking-widest">Cloud Store (ROMs)</span>
+                <span class="block text-sm font-black uppercase italic">+ Cloud Storage</span>
             </label>
-            <label class="bg-zinc-800 p-6 rounded-3xl cursor-pointer hover:bg-zinc-700 transition-all text-center border border-white/5">
+            <label class="bg-zinc-800 p-8 rounded-[2rem] cursor-pointer active:bg-zinc-700 text-center border border-white/5">
                 <input type="file" id="file-direct" class="hidden" accept=".nds,.n64,.iso,.3ds,.cci">
-                <span class="block text-xs font-black uppercase tracking-widest text-indigo-400">Direct Launch (3DS/PSP/MAME/NDS/etc.)</span>
+                <span class="block text-sm font-black uppercase italic text-indigo-400">⚡ Direct Boot</span>
             </label>
         </div>
 
         <div id="library-content"></div>
     </div>
 
-    <div id="settings-ui" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-6">
-        <div class="glass max-w-md w-full p-8 rounded-[2.5rem]">
-            <h2 class="text-xl font-black uppercase mb-6 text-center italic">Settings</h2>
+    <div id="settings-ui" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/98 p-6">
+        <div class="glass max-w-sm w-full p-8 rounded-[3rem] text-center">
+            <h2 class="text-2xl font-black uppercase mb-8 italic">Console Core</h2>
             <div class="space-y-4">
-                <select id="vfx-filter" class="w-full bg-zinc-900 p-4 rounded-xl text-xs font-bold border border-white/10 outline-none">
-                    <option value="none">Kein Filter (Performance)</option>
-                    <option value="crt">CRT Retro</option>
-                    <option value="hq4x">HD Smooth</option>
+                <select id="vfx-filter" class="w-full bg-zinc-900 p-5 rounded-2xl text-xs font-bold border border-white/5 outline-none">
+                    <option value="none">Native Pixels</option>
+                    <option value="crt">Retro CRT</option>
+                    <option value="hq4x">HQ Ultra</option>
                 </select>
-                <div class="flex gap-2">
-                    <button onclick="exportData()" class="flex-1 bg-zinc-800 py-3 rounded-xl text-[10px] font-bold">BACKUP</button>
-                    <label class="flex-1 bg-zinc-800 py-3 rounded-xl text-[10px] font-bold text-center cursor-pointer">
-                        RESTORE <input type="file" id="import-json" class="hidden" accept=".json">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="exportData()" class="bg-zinc-800 py-4 rounded-xl text-[9px] font-bold uppercase">Backup</button>
+                    <label class="bg-zinc-800 py-4 rounded-xl text-[9px] font-bold uppercase cursor-pointer">
+                        Restore <input type="file" id="import-json" class="hidden" accept=".json">
                     </label>
                 </div>
-                <button onclick="clearAllData()" class="w-full py-3 text-red-500 text-[9px] font-black uppercase opacity-50 hover:opacity-100">Reset Database</button>
-                <button onclick="toggleSettings(false)" class="w-full py-3 bg-white text-black rounded-xl font-bold text-xs mt-4">SCHLIESSEN</button>
+                <button onclick="clearAllData()" class="w-full py-4 text-red-500 text-[8px] font-black uppercase opacity-40 hover:opacity-100 transition-all">Clear All Data</button>
+                <button onclick="toggleSettings(false)" class="w-full py-4 bg-white text-black rounded-2xl font-black text-xs mt-6 uppercase">Back to Library</button>
             </div>
         </div>
     </div>
 
     <div id="emu-layer">
-        <button onclick="location.reload()" class="absolute top-4 right-4 z-[10000] bg-red-600 text-white px-6 py-2 rounded-full text-[10px] font-bold">BEENDEN</button>
+        <div class="absolute top-4 right-4 z-[10000] flex gap-2">
+            <button onclick="location.reload()" class="bg-red-600/80 backdrop-blur-md text-white px-6 py-2 rounded-full text-[10px] font-black uppercase shadow-2xl">Quit Game</button>
+        </div>
         <div id="game-container"></div>
     </div>
 
@@ -91,45 +104,40 @@
         let db;
         const extensionMap = { 'gba':'gba','gb':'gba','gbc':'gba','sfc':'snes','nes':'nes','md':'segaMD','nds':'desmume','n64':'n64','iso':'psx','3ds':'citra','cci':'citra' };
 
-        const req = indexedDB.open("RetroCloud_v26(1.0)", 1);
+        const req = indexedDB.open("RetroCloud_v24", 1);
         req.onupgradeneeded = e => e.target.result.createObjectStore("games", { keyPath: "name" });
         req.onsuccess = e => { db = e.target.result; renderLibrary(); };
 
-        // LAYOUT FIX
         function changeLayout(type) {
             const root = document.getElementById('app-root');
-            if(type === 'mobile') root.classList.add('mobile-view');
-            else root.classList.remove('mobile-view');
-            localStorage.setItem('retro_layout_v23', type);
+            root.className = (type === 'mobile') ? 'mobile-view' : '';
+            localStorage.setItem('retro_layout_v24', type);
         }
-        if(localStorage.getItem('retro_layout_v23') === 'mobile') changeLayout('mobile');
+        if(localStorage.getItem('retro_layout_v24') === 'mobile') changeLayout('mobile');
 
-        // RADIO FIX
         function toggleRadio() {
             const a = document.getElementById('lofi-audio');
             const b = document.getElementById('radio-btn');
-            if(a.paused) { a.play(); b.innerText = "Stop"; b.classList.replace('bg-indigo-600', 'bg-red-600'); }
-            else { a.pause(); b.innerText = "Play"; b.classList.replace('bg-red-600', 'bg-indigo-600'); }
+            if(a.paused) { a.play(); b.innerText = "Radio Stop"; b.classList.replace('bg-indigo-600', 'bg-red-600'); }
+            else { a.pause(); b.innerText = "Lofi Play"; b.classList.replace('bg-red-600', 'bg-indigo-600'); }
         }
 
         function toggleSettings(s) { document.getElementById('settings-ui').classList.toggle('hidden', !s); }
 
-        // FILE HANDLER
         document.getElementById('file-save').onchange = (e) => {
             const f = e.target.files[0]; if(!f) return;
-            const reader = new FileReader();
-            reader.onload = () => {
+            const r = new FileReader();
+            r.onload = () => {
                 db.transaction("games","readwrite").objectStore("games").put({
-                    name: f.name, core: extensionMap[f.name.split('.').pop().toLowerCase()] || 'gba', data: reader.result
+                    name: f.name, core: extensionMap[f.name.split('.').pop().toLowerCase()] || 'gba', data: r.result
                 }).oncomplete = renderLibrary;
             };
-            reader.readAsDataURL(f);
+            r.readAsDataURL(f);
         };
 
         document.getElementById('file-direct').onchange = (e) => {
             const f = e.target.files[0]; if(!f) return;
-            const ext = f.name.split('.').pop().toLowerCase();
-            launch(URL.createObjectURL(f), extensionMap[ext] || 'citra');
+            launch(URL.createObjectURL(f), extensionMap[f.name.split('.').pop().toLowerCase()] || 'citra');
         };
 
         async function renderLibrary() {
@@ -139,10 +147,10 @@
             const cores = [...new Set(games.map(g => g.core))];
             cores.forEach(sys => {
                 const sysGames = games.filter(g => g.core === sys);
-                container.innerHTML += `<h2 class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-4 mt-8">${sys}</h2>
+                container.innerHTML += `<h2 class="text-[9px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-4 mt-12">${sys}</h2>
                 <div class="grid-main">${sysGames.map(g => `<div class="game-card" onclick="startStored('${g.name}')">
-                    <div class="text-[10px] font-bold truncate text-white uppercase mb-2">${g.name}</div>
-                    <button onclick="event.stopPropagation(); deleteGame('${g.name}')" class="text-red-500 text-[9px] font-bold">LÖSCHEN</button>
+                    <div class="text-[10px] font-bold truncate text-white uppercase mb-3">${g.name.split('.')[0]}</div>
+                    <button onclick="event.stopPropagation(); deleteGame('${g.name}')" class="text-zinc-600 hover:text-red-500 text-[8px] font-black uppercase">Remove</button>
                 </div>`).join('')}</div>`;
             });
         }
@@ -159,7 +167,7 @@
             window.EJS_gameUrl = url;
             window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
             window.EJS_startOnLoaded = true;
-            window.EJS_settings = { "shader": document.getElementById('vfx-filter').value };
+            window.EJS_settings = { "shader": document.getElementById('vfx-filter').value, "open_turbo": true };
             const s = document.createElement('script');
             s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
             document.body.appendChild(s);
@@ -180,9 +188,9 @@
         function deleteGame(n) { if(confirm("Löschen?")) { db.transaction("games","readwrite").objectStore("games").delete(n).oncomplete = renderLibrary; } }
         async function exportData() {
             const games = await new Promise(res => db.transaction("games").objectStore("games").getAll().onsuccess = e => res(e.target.result));
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(games)], {type: "application/json"})); a.download = "RetroCloud_Backup.json"; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(games)], {type: "application/json"})); a.download = "RetroCloud_v24.json"; a.click();
         }
-        function clearAllData() { if(confirm("Reset?")) { indexedDB.deleteDatabase("RetroCloud_v23"); location.reload(); } }
+        function clearAllData() { if(confirm("Reset?")) { indexedDB.deleteDatabase("RetroCloud_v24"); location.reload(); } }
     </script>
 </body>
 </html>

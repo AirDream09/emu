@@ -3,90 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RetroCloud v3.4 | Safe-UI Edition</title>
+    <title>RetroCloud v3.1</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        :root { --bg: #000000; }
-        body { background: var(--bg); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
-
-        #main-ui { height: 100%; overflow-y: auto; padding: env(safe-area-inset-top) 20px 120px; }
-        .glass-card { background: rgba(255, 255, 255, 0.05); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        :root { --accent: #6366f1; --bg: #000000; }
         
-        /* --- DER EMULATOR-CONTAINER FIX --- */
-        #emu-layer { 
+        body { 
+            background: var(--bg); 
+            color: #fff; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0; height: 100vh; overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+        }
+
+        #main-ui {
+            height: 100%; overflow-y: auto;
+            padding: env(safe-area-inset-top) 20px calc(env(safe-area-inset-bottom) + 20px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        /* --- EMULATOR UI FIXES --- */
+        #emu-layer {
             display: none; 
             position: fixed; 
             inset: 0; 
             z-index: 9999; 
             background: #000;
+            /* Verhindert, dass der Inhalt unter die Notch rutscht */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
 
-        #game-container { 
-            width: 100%; 
-            height: 100%; 
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
         }
 
-        /* FORCE LANDSCAPE LAYOUT */
-        @media (orientation: landscape) {
-            #emu-layer {
-                /* Wir erzeugen künstliche Ränder, damit das Steuerkreuz 
-                   und die Buttons nicht am Display-Rand (Notch) kleben */
-                padding-left: env(safe-area-inset-left, 40px);
-                padding-right: env(safe-area-inset-right, 40px);
-                padding-bottom: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            /* Wir zwingen das Spiel in die Mitte, damit links/rechts Platz für Finger ist */
-            #game-container {
-                width: 85% !important; 
-                height: 90% !important;
-                margin: auto;
-            }
-        }
-
-        /* Exit Button */
+        /* Schwebender Exit-Button, der immer sichtbar & klickbar ist */
         .exit-btn {
-            position: fixed; top: 10px; right: 10px;
-            width: 44px; height: 44px; z-index: 10005;
-            background: rgba(0,0,0,0.6); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            border: 1px solid rgba(255,255,255,0.2); font-weight: bold;
+            position: absolute; 
+            top: 10px; 
+            right: 10px;
+            width: 40px; height: 40px; 
+            z-index: 10001;
+            background: rgba(255,255,255,0.2); 
+            backdrop-filter: blur(10px);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.3);
         }
+
+        .upload-zone {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 2px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 28px;
+        }
+
+        #main-ui::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
     <div id="main-ui">
-        <header class="py-10">
-            <h1 class="text-3xl font-black italic uppercase tracking-tighter">Retro<span class="text-indigo-500">Cloud</span></h1>
-            <p class="text-[10px] text-zinc-500 font-bold uppercase mt-1">v3.4 Safe-Area Patched</p>
+        <header class="py-8 flex justify-between items-end">
+            <div>
+                <p class="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-1">Local Library</p>
+                <h1 class="text-4xl font-extrabold tracking-tight">Retro<span class="text-indigo-500">Cloud</span></h1>
+            </div>
         </header>
 
-        <label class="block p-12 mb-10 border-2 border-dashed border-zinc-800 rounded-[2.5rem] text-center cursor-pointer active:bg-zinc-900 transition-all">
+        <label class="upload-zone block p-10 mb-10 text-center cursor-pointer active:scale-[0.98] transition-all">
             <input type="file" id="rom-upload" class="hidden" accept=".gba,.gb,.gbc,.nes,.sfc,.smc,.md">
-            <span class="text-3xl">🎮</span><br>
-            <span class="text-xs font-bold uppercase text-zinc-400 mt-4 block">ROM auswählen</span>
+            <div class="text-3xl mb-3">🕹️</div>
+            <span class="text-sm font-semibold text-indigo-200">Spiel hinzufügen</span>
         </label>
 
-        <div id="library-container" class="grid grid-cols-2 gap-4"></div>
+        <div id="library-container" class="space-y-10"></div>
+    </div>
+
+    <div id="options-ui" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+        <div class="glass-card w-full max-w-sm p-6">
+            <h2 id="opt-title" class="text-xl font-bold mb-4 text-center">Settings</h2>
+            <textarea id="cheat-input" class="w-full h-32 bg-white/5 rounded-xl p-3 text-xs font-mono border border-white/10 outline-none mb-4 text-indigo-300" placeholder="Cheats hier rein..."></textarea>
+            <div class="flex gap-3">
+                <button onclick="saveOptions()" class="flex-1 py-3 bg-indigo-600 rounded-xl font-bold text-sm">Save</button>
+                <button onclick="toggleOptions(false)" class="flex-1 py-3 bg-white/10 rounded-xl font-bold text-sm">Back</button>
+            </div>
+        </div>
     </div>
 
     <div id="emu-layer">
-        <div class="exit-btn" onclick="location.reload()">✕</div>
+        <button class="exit-btn" onclick="location.reload()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
         <div id="game-container"></div>
     </div>
 
     <script>
-        let db;
+        let db, currentFileName = "", currentOptGame = "";
+
         const request = indexedDB.open("RetroCloud_V3", 1);
         request.onupgradeneeded = e => e.target.result.createObjectStore("games", { keyPath: "name" });
         request.onsuccess = e => { db = e.target.result; renderLibrary(); };
@@ -98,7 +134,7 @@
                 const ext = f.name.split('.').pop().toLowerCase();
                 const coreMap = {'gba':'gba','gb':'gba','gbc':'gba','nes':'nes','sfc':'snes','smc':'snes','md':'segaMD'};
                 db.transaction("games","readwrite").objectStore("games").put({
-                    name: f.name, core: coreMap[ext] || 'gba', data: r.result
+                    name: f.name, core: coreMap[ext] || 'gba', data: r.result, cheats: ""
                 }).oncomplete = renderLibrary;
             };
             r.readAsDataURL(f);
@@ -106,13 +142,28 @@
 
         async function renderLibrary() {
             const games = await new Promise(res => db.transaction("games").objectStore("games").getAll().onsuccess = e => res(e.target.result));
-            document.getElementById('library-container').innerHTML = games.map(game => `
-                <div class="glass-card p-5 h-36 flex flex-col justify-between" onclick="launchGame('${game.name}')">
-                    <div class="text-[9px] font-black text-indigo-500 uppercase">${game.core}</div>
-                    <div class="text-sm font-bold leading-tight">${game.name.split('.')[0]}</div>
-                    <div class="text-[9px] text-zinc-600 font-bold uppercase" onclick="event.stopPropagation(); deleteGame('${game.name}')">Löschen</div>
-                </div>
-            `).join('');
+            const container = document.getElementById('library-container');
+            container.innerHTML = "";
+            if(games.length === 0) container.innerHTML = `<div class="text-center py-20 text-zinc-600">Keine Spiele gefunden.</div>`;
+
+            [...new Set(games.map(g => g.core))].forEach(sys => {
+                const sec = document.createElement('div');
+                sec.innerHTML = `<h3 class="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">${sys.toUpperCase()}</h3><div class="game-grid"></div>`;
+                games.filter(g => g.core === sys).forEach(game => {
+                    const card = document.createElement('div');
+                    card.className = "glass-card p-4 flex flex-col justify-between h-36 relative";
+                    card.innerHTML = `
+                        <div onclick="launchGame('${game.name}')" class="flex-1">
+                            <div class="text-xs font-bold pr-6">${game.name.split('.')[0]}</div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <button onclick="openOptions('${game.name}')" class="text-[9px] font-bold text-indigo-400 uppercase">Cheats</button>
+                            <button onclick="deleteGame('${game.name}')" class="text-[9px] font-bold text-red-900 uppercase">Löschen</button>
+                        </div>`;
+                    sec.querySelector('.game-grid').appendChild(card);
+                });
+                container.appendChild(sec);
+            });
         }
 
         function launchGame(name) {
@@ -126,16 +177,12 @@
                 window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
                 window.EJS_startOnLoaded = true;
                 
-                // Wir schalten hier die problematischen Buttons AUS, falls sie zu sehr stören,
-                // oder lassen sie an, aber durch das CSS oben haben sie nun mehr Platz.
+                // WICHTIG: Erzwungene Anpassung der virtuellen Buttons
                 window.EJS_settings = { 
-                    "buttons": { 
-                        "menu": true, 
-                        "start": true, 
-                        "select": true, 
-                        "fastForward": true, 
-                        "slowMotion": false 
-                    }
+                    "buttons": { "menu": true }, 
+                    "cheats": game.cheats || "",
+                    "waitBeforeStarting": true,
+                    "screenshotOnSave": false
                 };
                 
                 const s = document.createElement('script');
@@ -144,6 +191,24 @@
             };
         }
 
+        async function openOptions(name) {
+            currentOptGame = name;
+            const game = await new Promise(res => db.transaction("games").objectStore("games").get(name).onsuccess = e => res(e.target.result));
+            document.getElementById('opt-title').innerText = name.split('.')[0];
+            document.getElementById('cheat-input').value = game.cheats || "";
+            toggleOptions(true);
+        }
+
+        async function saveOptions() {
+            const tx = db.transaction("games", "readwrite");
+            const store = tx.objectStore("games");
+            const game = await new Promise(res => store.get(currentOptGame).onsuccess = e => res(e.target.result));
+            game.cheats = document.getElementById('cheat-input').value;
+            store.put(game);
+            tx.oncomplete = () => { toggleOptions(false); renderLibrary(); };
+        }
+
+        function toggleOptions(s) { document.getElementById('options-ui').classList.toggle('hidden', !s); }
         function deleteGame(n) { if(confirm("Löschen?")) db.transaction("games","readwrite").objectStore("games").delete(n).oncomplete = renderLibrary; }
     </script>
 </body>

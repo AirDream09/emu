@@ -3,60 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RetroCloud v3.3</title>
+    <title>RetroCloud v3.4 | Safe-UI Edition</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&display=swap" rel="stylesheet">
     
     <style>
-        :root { --accent: #6366f1; --bg: #000000; }
+        :root { --bg: #000000; }
         body { background: var(--bg); color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
 
-        #main-ui { height: 100%; overflow-y: auto; padding: env(safe-area-inset-top) 20px 100px; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }
+        #main-ui { height: 100%; overflow-y: auto; padding: env(safe-area-inset-top) 20px 120px; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); }
         
+        /* --- DER EMULATOR-CONTAINER FIX --- */
         #emu-layer { 
-            display: none; position: fixed; inset: 0; z-index: 9999; background: #000;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            z-index: 9999; 
+            background: #000;
         }
 
-        #game-container { width: 100%; height: 100%; }
+        #game-container { 
+            width: 100%; 
+            height: 100%; 
+        }
+
+        /* FORCE LANDSCAPE LAYOUT */
+        @media (orientation: landscape) {
+            #emu-layer {
+                /* Wir erzeugen künstliche Ränder, damit das Steuerkreuz 
+                   und die Buttons nicht am Display-Rand (Notch) kleben */
+                padding-left: env(safe-area-inset-left, 40px);
+                padding-right: env(safe-area-inset-right, 40px);
+                padding-bottom: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Wir zwingen das Spiel in die Mitte, damit links/rechts Platz für Finger ist */
+            #game-container {
+                width: 85% !important; 
+                height: 90% !important;
+                margin: auto;
+            }
+        }
 
         /* Exit Button */
         .exit-btn {
-            position: fixed; top: env(safe-area-inset-top, 20px); right: 20px;
-            width: 40px; height: 40px; z-index: 10005;
-            background: rgba(255,255,255,0.2); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        /* Dieser Style versucht die Buttons zu erzwingen, falls sie keine Inline-Styles haben */
-        #game-container div[id*="start"], #game-container div[id*="select"] {
-            bottom: 20px !important;
+            position: fixed; top: 10px; right: 10px;
+            width: 44px; height: 44px; z-index: 10005;
+            background: rgba(0,0,0,0.6); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.2); font-weight: bold;
         }
     </style>
 </head>
 <body>
 
     <div id="main-ui">
-        <header class="py-8">
-            <h1 class="text-3xl font-black italic uppercase">Retro<span class="text-indigo-500">Cloud</span></h1>
+        <header class="py-10">
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">Retro<span class="text-indigo-500">Cloud</span></h1>
+            <p class="text-[10px] text-zinc-500 font-bold uppercase mt-1">v3.4 Safe-Area Patched</p>
         </header>
 
-        <label class="block p-10 mb-8 border-2 border-dashed border-indigo-500/30 rounded-[2rem] text-center cursor-pointer active:scale-95 transition-all">
+        <label class="block p-12 mb-10 border-2 border-dashed border-zinc-800 rounded-[2.5rem] text-center cursor-pointer active:bg-zinc-900 transition-all">
             <input type="file" id="rom-upload" class="hidden" accept=".gba,.gb,.gbc,.nes,.sfc,.smc,.md">
-            <span class="text-2xl">📥</span><br>
-            <span class="text-xs font-bold uppercase text-indigo-400">ROM importieren</span>
+            <span class="text-3xl">🎮</span><br>
+            <span class="text-xs font-bold uppercase text-zinc-400 mt-4 block">ROM auswählen</span>
         </label>
 
         <div id="library-container" class="grid grid-cols-2 gap-4"></div>
     </div>
 
     <div id="emu-layer">
-        <div class="exit-btn" onclick="location.reload()">✖</div>
+        <div class="exit-btn" onclick="location.reload()">✕</div>
         <div id="game-container"></div>
     </div>
 
@@ -81,12 +106,11 @@
 
         async function renderLibrary() {
             const games = await new Promise(res => db.transaction("games").objectStore("games").getAll().onsuccess = e => res(e.target.result));
-            const container = document.getElementById('library-container');
-            container.innerHTML = games.map(game => `
-                <div class="glass-card p-4 flex flex-col h-32 justify-between" onclick="launchGame('${game.name}')">
-                    <div class="text-[10px] font-bold truncate text-zinc-400 uppercase tracking-tighter">${game.core}</div>
-                    <div class="text-sm font-black leading-tight">${game.name.split('.')[0]}</div>
-                    <div class="text-[8px] text-red-500 uppercase font-bold" onclick="event.stopPropagation(); deleteGame('${game.name}')">Löschen</div>
+            document.getElementById('library-container').innerHTML = games.map(game => `
+                <div class="glass-card p-5 h-36 flex flex-col justify-between" onclick="launchGame('${game.name}')">
+                    <div class="text-[9px] font-black text-indigo-500 uppercase">${game.core}</div>
+                    <div class="text-sm font-bold leading-tight">${game.name.split('.')[0]}</div>
+                    <div class="text-[9px] text-zinc-600 font-bold uppercase" onclick="event.stopPropagation(); deleteGame('${game.name}')">Löschen</div>
                 </div>
             `).join('');
         }
@@ -101,54 +125,22 @@
                 window.EJS_gameUrl = game.data;
                 window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
                 window.EJS_startOnLoaded = true;
+                
+                // Wir schalten hier die problematischen Buttons AUS, falls sie zu sehr stören,
+                // oder lassen sie an, aber durch das CSS oben haben sie nun mehr Platz.
                 window.EJS_settings = { 
-                    "buttons": { "menu": true, "start": true, "select": true, "fastForward": true, "slowMotion": true }
+                    "buttons": { 
+                        "menu": true, 
+                        "start": true, 
+                        "select": true, 
+                        "fastForward": true, 
+                        "slowMotion": false 
+                    }
                 };
                 
                 const s = document.createElement('script');
                 s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
                 document.body.appendChild(s);
-
-                // --- DER FIX: FORCE BUTTON POSITIONING ---
-                const buttonFixer = setInterval(() => {
-                    // Suche nach den Buttons im DOM (auch innerhalb von EmulatorJS Containern)
-                    const startBtn = document.querySelector('div[id*="start"]');
-                    const selectBtn = document.querySelector('div[id*="select"]');
-                    const fastBtn = document.querySelector('div[id*="fastForward"]');
-                    const slowBtn = document.querySelector('div[id*="slowMotion"]');
-
-                    if (window.innerHeight < window.innerWidth) { // Nur im Querformat
-                        if(startBtn) {
-                            startBtn.style.left = "140px";
-                            startBtn.style.bottom = "20px";
-                            startBtn.style.top = "auto";
-                            startBtn.style.right = "auto";
-                            startBtn.style.position = "fixed";
-                        }
-                        if(selectBtn) {
-                            selectBtn.style.right = "140px";
-                            selectBtn.style.bottom = "20px";
-                            selectBtn.style.top = "auto";
-                            selectBtn.style.left = "auto";
-                            selectBtn.style.position = "fixed";
-                        }
-                        if(fastBtn) {
-                            fastBtn.style.right = "80px";
-                            fastBtn.style.top = "20px";
-                            fastBtn.style.position = "fixed";
-                        }
-                        if(slowBtn) {
-                            slowBtn.style.left = "80px";
-                            slowBtn.style.top = "20px";
-                            slowBtn.style.position = "fixed";
-                        }
-                    }
-                    
-                    // Wenn das Spiel läuft, können wir das Intervall verlangsamen
-                    if (startBtn && selectBtn) {
-                        // Wir lassen es laufen, falls der User das Handy dreht
-                    }
-                }, 500);
             };
         }
 

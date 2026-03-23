@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RetroCloud v27.4 | Controller Fix</title>
+    <title>RetroCloud v27.4 | Ultimate Input Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -11,14 +11,16 @@
         body { background: var(--bg); color: #fafafa; font-family: 'Inter', sans-serif; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(18, 18, 22, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
         .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.2rem; }
-        .game-card { 
-            background: #0f0f13; border-radius: 1.2rem; border: 1px solid rgba(255,255,255,0.03); 
-            padding: 1.2rem; display: flex; flex-direction: column; transition: 0.2s; cursor: pointer;
-        }
+        .game-card { background: #0f0f13; border-radius: 1.2rem; border: 1px solid rgba(255,255,255,0.03); padding: 1.2rem; display: flex; flex-direction: column; transition: 0.2s; cursor: pointer; }
         .game-card:hover { border-color: var(--accent); transform: translateY(-2px); }
         .game-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; word-break: break-word; line-height: 1.3; color: #fff; margin-bottom: 1rem; }
+        
         #emu-layer { display: none; position: fixed; inset: 0; z-index: 9999; background: #000; }
         #game-container { width: 100%; height: 100%; }
+        
+        /* Sorgt dafür, dass UI-Elemente über dem Emulator klickbar bleiben */
+        #game-container iframe { pointer-events: auto !important; }
+
         .exit-trigger {
             position: fixed; top: 15px; right: 15px; width: 35px; height: 35px;
             background: rgba(255,255,255,0.1); border-radius: 50%; z-index: 10005;
@@ -37,7 +39,7 @@
         <header class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-3xl font-black italic tracking-tighter uppercase leading-none text-white">Retro<span class="text-indigo-500">Cloud</span></h1>
-                <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.3em] mt-2 ml-1">v27.4 Xbox Fix Edition</p>
+                <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.3em] mt-2 ml-1">v27.4 Controller-Master Edition</p>
             </div>
             <button onclick="loginToDropbox()" class="glass px-4 py-2 rounded-xl text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all">Link Cloud</button>
         </header>
@@ -135,8 +137,11 @@
                 "cheats": game.cheats || "",
                 "wait_for_input": true, 
                 "show_full_settings": true,
-                "key_bind_timeout": 0, // WICHTIG: Verhindert automatisches "Fertig"
-                "input_menu_fixed": true 
+                "key_bind_timeout": 0,
+                // Neue Flags für Xbox-Stabilität:
+                "disable_input_autodetect": true, 
+                "input_capture": true,
+                "gamepad_deadzone": 0.2 // Ignoriert minimales Stick-Rauschen
             };
 
             if (savedConfig) { window.EJS_extraConfig = savedConfig.data; }
@@ -145,7 +150,6 @@
             s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
             document.body.appendChild(s);
 
-            // Automatischer Speicher-Listener
             window.addEventListener('message', function(e) {
                 if(e.data && e.data.type === 'EJS_SAVE_SETTINGS') {
                     db.transaction("settings", "readwrite").objectStore("settings").put({

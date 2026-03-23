@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RetroCloud v27.4 | Pro Edition</title>
+    <title>RetroCloud v27.4 | Controller Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -37,7 +37,7 @@
         <header class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-3xl font-black italic tracking-tighter uppercase leading-none text-white">Retro<span class="text-indigo-500">Cloud</span></h1>
-                <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.3em] mt-2 ml-1">v27.4 Multi-Input Edition</p>
+                <p class="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.3em] mt-2 ml-1">v27.4 Xbox Fix Edition</p>
             </div>
             <button onclick="loginToDropbox()" class="glass px-4 py-2 rounded-xl text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all">Link Cloud</button>
         </header>
@@ -54,7 +54,7 @@
     <div id="options-ui" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl">
         <div class="glass w-full max-w-md p-8 rounded-[2.5rem]">
             <h2 id="opt-title" class="text-xl font-black uppercase italic mb-6 text-center text-white">Game Options</h2>
-            <textarea id="cheat-input" class="w-full h-40 bg-zinc-900 rounded-2xl p-4 text-[10px] font-mono border border-white/5 outline-none mb-6 text-indigo-300" placeholder="Cheat Codes here..."></textarea>
+            <textarea id="cheat-input" class="w-full h-40 bg-zinc-900 rounded-2xl p-4 text-[10px] font-mono border border-white/5 outline-none mb-6 text-indigo-300" placeholder="Cheats..."></textarea>
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="saveOptions()" class="py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg shadow-indigo-500/20">Save</button>
                 <button onclick="toggleOptions(false)" class="py-4 bg-zinc-800 rounded-2xl font-black text-[10px] uppercase text-zinc-400">Back</button>
@@ -68,11 +68,9 @@
     </div>
 
     <script>
-        const DBX_APP_KEY = 'DEIN_KEY_HIER'; 
-        let db, currentOptGame = null;
+        let db;
 
-        // DB Setup inkl. Store für Settings
-        const request = indexedDB.open("RetroCloud_v27_4", 2); // Version erhöht
+        const request = indexedDB.open("RetroCloud_v27_4", 2);
         request.onupgradeneeded = e => {
             const dbRef = e.target.result;
             if (!dbRef.objectStoreNames.contains("games")) dbRef.createObjectStore("games", { keyPath: "name" });
@@ -80,7 +78,6 @@
         };
         request.onsuccess = e => { db = e.target.result; renderLibrary(); };
 
-        // File Handler
         document.getElementById('rom-upload').onchange = e => {
             const f = e.target.files[0]; if(!f) return;
             const r = new FileReader();
@@ -110,20 +107,17 @@
                 games.filter(g => g.core === sys).forEach(game => {
                     const card = document.createElement('div');
                     card.className = "game-card";
-                    card.innerHTML = `
-                        <div class="game-title" onclick="launchGame('${game.name}')">${game.name.split('.')[0]}</div>
+                    card.innerHTML = `<div class="game-title" onclick="launchGame('${game.name}')">${game.name.split('.')[0]}</div>
                         <div class="mt-auto flex gap-4 pt-4 border-t border-white/5">
                             <button onclick="openOptions('${game.name}')" class="text-[8px] font-black uppercase text-indigo-400">Options</button>
                             <button onclick="deleteGame('${game.name}')" class="text-[8px] font-black uppercase text-red-900">Delete</button>
-                        </div>
-                    `;
+                        </div>`;
                     grid.appendChild(card);
                 });
                 container.appendChild(sec);
             });
         }
 
-        // Controller & Game Launcher
         async function launchGame(name) {
             const game = await new Promise(res => db.transaction("games").objectStore("games").get(name).onsuccess = e => res(e.target.result));
             const savedConfig = await new Promise(res => db.transaction("settings").objectStore("settings").get("input_config").onsuccess = e => res(e.target.result));
@@ -137,24 +131,21 @@
             window.EJS_startOnLoaded = true;
             
             window.EJS_settings = {
-                "netplay_enabled": true,
                 "full_screen": true,
                 "cheats": game.cheats || "",
-                "wait_for_input": true, // Verhindert schnelles Schließen beim Mapping
+                "wait_for_input": true, 
                 "show_full_settings": true,
-                "key_bind_timeout": 3000
+                "key_bind_timeout": 0, // WICHTIG: Verhindert automatisches "Fertig"
+                "input_menu_fixed": true 
             };
 
-            // Wenn wir gespeicherte Controller-Settings haben, laden wir sie hier
-            if (savedConfig) {
-                window.EJS_extraConfig = savedConfig.data;
-            }
+            if (savedConfig) { window.EJS_extraConfig = savedConfig.data; }
 
             const s = document.createElement('script');
             s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
             document.body.appendChild(s);
 
-            // Listener um Controller-Änderungen zu speichern
+            // Automatischer Speicher-Listener
             window.addEventListener('message', function(e) {
                 if(e.data && e.data.type === 'EJS_SAVE_SETTINGS') {
                     db.transaction("settings", "readwrite").objectStore("settings").put({
@@ -184,7 +175,7 @@
 
         function toggleOptions(s) { document.getElementById('options-ui').classList.toggle('hidden', !s); }
         function deleteGame(n) { if(confirm("Delete?")) db.transaction("games","readwrite").objectStore("games").delete(n).oncomplete = renderLibrary; }
-        function loginToDropbox() { alert("Cloud Sync Key required in source code."); }
+        function loginToDropbox() { alert("Cloud Sync Key required."); }
     </script>
 </body>
 </html>

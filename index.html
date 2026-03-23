@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RetroCloud v3.1</title>
+    <title>RetroCloud v3.2</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,7 +32,6 @@
         #main-ui {
             height: 100%; overflow-y: auto;
             padding: env(safe-area-inset-top) 20px calc(env(safe-area-inset-bottom) + 20px);
-            -webkit-overflow-scrolling: touch;
         }
 
         .game-grid {
@@ -41,37 +40,41 @@
             gap: 16px;
         }
 
-        /* --- EMULATOR UI FIXES --- */
+        /* --- EMULATOR UI & SAFE AREA --- */
         #emu-layer {
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            z-index: 9999; 
-            background: #000;
-            /* Verhindert, dass der Inhalt unter die Notch rutscht */
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
+            display: none; position: fixed; inset: 0; z-index: 9999; background: #000;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
-        #game-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
+        #game-container { width: 100%; height: 100%; }
 
-        /* Schwebender Exit-Button, der immer sichtbar & klickbar ist */
         .exit-btn {
-            position: absolute; 
-            top: 10px; 
-            right: 10px;
-            width: 40px; height: 40px; 
-            z-index: 10001;
-            background: rgba(255,255,255,0.2); 
-            backdrop-filter: blur(10px);
+            position: absolute; top: 15px; right: 15px;
+            width: 40px; height: 40px; z-index: 10005;
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* --- BUTTON REDISTRIBUTION (LANDSCAPE) --- */
+        @media (orientation: landscape) {
+            /* Schiebt System-Buttons (Start/Select/Speed) aus der Mitte */
+            .ejs-buttons-center {
+                display: flex !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+                padding: 0 80px !important; /* Abstand zu D-Pad und A/B Buttons */
+                bottom: 20px !important;
+            }
+
+            /* Falls EmulatorJS einzelne IDs nutzt: */
+            #start, #select { position: absolute !important; bottom: 30px !important; }
+            #start { left: 120px !important; }
+            #select { right: 120px !important; }
+            
+            #fastForward, #slowMotion { top: 20px !important; position: absolute !important; }
+            #fastForward { right: 80px !important; }
+            #slowMotion { left: 80px !important; }
         }
 
         .upload-zone {
@@ -79,38 +82,23 @@
             border: 2px dashed rgba(99, 102, 241, 0.3);
             border-radius: 28px;
         }
-
-        #main-ui::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
     <div id="main-ui">
-        <header class="py-8 flex justify-between items-end">
-            <div>
-                <p class="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-1">Local Library</p>
-                <h1 class="text-4xl font-extrabold tracking-tight">Retro<span class="text-indigo-500">Cloud</span></h1>
-            </div>
+        <header class="py-8">
+            <p class="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.3em] mb-1">Mobile Retro Engine</p>
+            <h1 class="text-4xl font-extrabold tracking-tight">Retro<span class="text-indigo-500">Cloud</span></h1>
         </header>
 
-        <label class="upload-zone block p-10 mb-10 text-center cursor-pointer active:scale-[0.98] transition-all">
+        <label class="upload-zone block p-10 mb-10 text-center cursor-pointer active:scale-95 transition-all">
             <input type="file" id="rom-upload" class="hidden" accept=".gba,.gb,.gbc,.nes,.sfc,.smc,.md">
             <div class="text-3xl mb-3">🕹️</div>
-            <span class="text-sm font-semibold text-indigo-200">Spiel hinzufügen</span>
+            <span class="text-sm font-semibold text-indigo-200">ROM importieren</span>
         </label>
 
         <div id="library-container" class="space-y-10"></div>
-    </div>
-
-    <div id="options-ui" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-        <div class="glass-card w-full max-w-sm p-6">
-            <h2 id="opt-title" class="text-xl font-bold mb-4 text-center">Settings</h2>
-            <textarea id="cheat-input" class="w-full h-32 bg-white/5 rounded-xl p-3 text-xs font-mono border border-white/10 outline-none mb-4 text-indigo-300" placeholder="Cheats hier rein..."></textarea>
-            <div class="flex gap-3">
-                <button onclick="saveOptions()" class="flex-1 py-3 bg-indigo-600 rounded-xl font-bold text-sm">Save</button>
-                <button onclick="toggleOptions(false)" class="flex-1 py-3 bg-white/10 rounded-xl font-bold text-sm">Back</button>
-            </div>
-        </div>
     </div>
 
     <div id="emu-layer">
@@ -121,7 +109,7 @@
     </div>
 
     <script>
-        let db, currentFileName = "", currentOptGame = "";
+        let db;
 
         const request = indexedDB.open("RetroCloud_V3", 1);
         request.onupgradeneeded = e => e.target.result.createObjectStore("games", { keyPath: "name" });
@@ -134,7 +122,7 @@
                 const ext = f.name.split('.').pop().toLowerCase();
                 const coreMap = {'gba':'gba','gb':'gba','gbc':'gba','nes':'nes','sfc':'snes','smc':'snes','md':'segaMD'};
                 db.transaction("games","readwrite").objectStore("games").put({
-                    name: f.name, core: coreMap[ext] || 'gba', data: r.result, cheats: ""
+                    name: f.name, core: coreMap[ext] || 'gba', data: r.result
                 }).oncomplete = renderLibrary;
             };
             r.readAsDataURL(f);
@@ -144,8 +132,7 @@
             const games = await new Promise(res => db.transaction("games").objectStore("games").getAll().onsuccess = e => res(e.target.result));
             const container = document.getElementById('library-container');
             container.innerHTML = "";
-            if(games.length === 0) container.innerHTML = `<div class="text-center py-20 text-zinc-600">Keine Spiele gefunden.</div>`;
-
+            
             [...new Set(games.map(g => g.core))].forEach(sys => {
                 const sec = document.createElement('div');
                 sec.innerHTML = `<h3 class="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4">${sys.toUpperCase()}</h3><div class="game-grid"></div>`;
@@ -154,12 +141,9 @@
                     card.className = "glass-card p-4 flex flex-col justify-between h-36 relative";
                     card.innerHTML = `
                         <div onclick="launchGame('${game.name}')" class="flex-1">
-                            <div class="text-xs font-bold pr-6">${game.name.split('.')[0]}</div>
+                            <div class="text-xs font-bold">${game.name.split('.')[0]}</div>
                         </div>
-                        <div class="flex justify-between items-center mt-2">
-                            <button onclick="openOptions('${game.name}')" class="text-[9px] font-bold text-indigo-400 uppercase">Cheats</button>
-                            <button onclick="deleteGame('${game.name}')" class="text-[9px] font-bold text-red-900 uppercase">Löschen</button>
-                        </div>`;
+                        <button onclick="deleteGame('${game.name}')" class="text-[9px] font-bold text-red-900 uppercase">Löschen</button>`;
                     sec.querySelector('.game-grid').appendChild(card);
                 });
                 container.appendChild(sec);
@@ -177,12 +161,15 @@
                 window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
                 window.EJS_startOnLoaded = true;
                 
-                // WICHTIG: Erzwungene Anpassung der virtuellen Buttons
+                // Optimierte Button-Konfiguration
                 window.EJS_settings = { 
-                    "buttons": { "menu": true }, 
-                    "cheats": game.cheats || "",
-                    "waitBeforeStarting": true,
-                    "screenshotOnSave": false
+                    "buttons": { 
+                        "menu": true,
+                        "start": true,
+                        "select": true,
+                        "fastForward": true,
+                        "slowMotion": true
+                    }
                 };
                 
                 const s = document.createElement('script');
@@ -191,24 +178,6 @@
             };
         }
 
-        async function openOptions(name) {
-            currentOptGame = name;
-            const game = await new Promise(res => db.transaction("games").objectStore("games").get(name).onsuccess = e => res(e.target.result));
-            document.getElementById('opt-title').innerText = name.split('.')[0];
-            document.getElementById('cheat-input').value = game.cheats || "";
-            toggleOptions(true);
-        }
-
-        async function saveOptions() {
-            const tx = db.transaction("games", "readwrite");
-            const store = tx.objectStore("games");
-            const game = await new Promise(res => store.get(currentOptGame).onsuccess = e => res(e.target.result));
-            game.cheats = document.getElementById('cheat-input').value;
-            store.put(game);
-            tx.oncomplete = () => { toggleOptions(false); renderLibrary(); };
-        }
-
-        function toggleOptions(s) { document.getElementById('options-ui').classList.toggle('hidden', !s); }
         function deleteGame(n) { if(confirm("Löschen?")) db.transaction("games","readwrite").objectStore("games").delete(n).oncomplete = renderLibrary; }
     </script>
 </body>

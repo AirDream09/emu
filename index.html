@@ -3,108 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RetroCloud - Emulator & Cloud Sync</title>
+    <title>RetroCloud Ultra</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
         #emu-layer { display: none; position: fixed; inset: 0; background: black; z-index: 50; }
         #game-container { width: 100%; height: 100vh; }
-        .game-card:hover { transform: translateY(-5px); transition: all 0.3s; }
+        .game-card:hover { transform: translateY(-5px); transition: all 0.3s; border-color: #3b82f6; }
     </style>
 </head>
 <body class="p-6">
 
     <header class="max-w-6xl mx-auto flex justify-between items-center mb-10">
         <div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                RetroCloud
-            </h1>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">RetroCloud</h1>
             <div class="flex items-center gap-2 mt-1">
                 <div id="status-dot" class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></div>
-                <span id="status-text" class="text-xs text-slate-400 uppercase tracking-widest">Cloud Offline</span>
+                <span id="status-text" class="text-xs text-slate-400 tracking-widest uppercase">Cloud Offline</span>
             </div>
         </div>
-        <button onclick="loginToDropbox()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition">
-            Dropbox verbinden
-        </button>
+        <div class="flex gap-2">
+            <button onclick="loginToDropbox()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition">Dropbox Login</button>
+        </div>
     </header>
 
     <main class="max-w-6xl mx-auto">
-        <section class="mb-12 bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Neues Spiel hinzufügen</h2>
+        <section class="mb-12 bg-slate-800/40 p-6 rounded-2xl border border-slate-700 backdrop-blur-sm">
+            <h2 class="text-lg font-semibold mb-4">Spiel hinzufügen</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input type="text" id="game-name" placeholder="Name (z.B. Pokemon)" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm outline-none focus:border-blue-500 border">
-                <input type="text" id="game-url" placeholder="ROM URL (Direktlink)" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm outline-none focus:border-blue-500 border">
-                <select id="game-core" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm outline-none border">
-                    <option value="gba">GameBoy Advance</option>
+                <input type="text" id="game-name" placeholder="Name" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm border outline-none">
+                <input type="text" id="game-url" placeholder="ROM URL (Direct Link)" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm border outline-none">
+                <select id="game-core" class="bg-slate-900 border-slate-700 rounded-lg p-2 text-sm border">
+                    <option value="gba">GBA</option>
                     <option value="snes">SNES</option>
                     <option value="nes">NES</option>
-                    <option value="gbc">GameBoy Color</option>
-                    <option value="segaMD">Sega Genesis</option>
                 </select>
-                <button onclick="addGame()" class="bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold">Hinzufügen</button>
+                <button onclick="addGame()" class="bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition">Speichern</button>
             </div>
         </section>
 
-        <div id="library" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            </div>
+        <div id="library" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
     </main>
 
     <div id="emu-layer">
-        <button onclick="closeEmulator()" class="absolute top-4 right-4 z-[60] bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-md">
-            ✕ Schließen & Speichern
-        </button>
+        <div class="absolute top-4 left-4 z-[60] flex gap-2">
+            <button onclick="downloadCurrentSave()" class="bg-slate-800/80 hover:bg-slate-700 text-white px-3 py-1 rounded text-xs border border-white/20">💾 Save auf Gerät laden</button>
+            <label class="bg-slate-800/80 hover:bg-slate-700 text-white px-3 py-1 rounded text-xs border border-white/20 cursor-pointer">
+                📂 Lokalen Save importieren
+                <input type="file" id="import-save" class="hidden" onchange="importLocalSave(event)">
+            </label>
+        </div>
+        <button onclick="location.reload()" class="absolute top-4 right-4 z-[60] bg-red-500/80 hover:bg-red-500 text-white px-4 py-1 rounded-full text-sm">✕ Beenden</button>
         <div id="game-container"></div>
     </div>
 
     <script>
         const DBX_APP_KEY = 'jd1mz866barkxm1'; 
         const REDIRECT_URI = window.location.href.split('#')[0];
-        let db, currentFileName = "";
+        let db, currentFileName = "", lastCapturedState = null;
 
-        // 1. IndexedDB Setup
+        // DB Setup
         const request = indexedDB.open("RetroCloud_DBX", 1);
-        request.onsuccess = e => { 
-            db = e.target.result; 
-            renderLibrary(); 
-            checkCloudStatus(); 
-        };
-        request.onupgradeneeded = e => { 
-            e.target.result.createObjectStore("games", { keyPath: "name" }); 
-        };
+        request.onsuccess = e => { db = e.target.result; renderLibrary(); checkCloudStatus(); };
+        request.onupgradeneeded = e => { e.target.result.createObjectStore("games", { keyPath: "name" }); };
 
-        // 2. Dropbox Auth
         function loginToDropbox() {
             window.location.href = `https://www.dropbox.com/oauth2/authorize?client_id=${jd1mz866barkxm1}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
         }
 
         function checkCloudStatus() {
             if (window.location.hash.includes("access_token=")) {
-                const params = new URLSearchParams(window.location.hash.substring(1));
-                localStorage.setItem("dbx_token", params.get("access_token"));
+                localStorage.setItem("dbx_token", new URLSearchParams(window.location.hash.substring(1)).get("access_token"));
                 window.location.hash = "";
             }
-            const token = localStorage.getItem("dbx_token");
-            if (token) {
+            if (localStorage.getItem("dbx_token")) {
                 document.getElementById('status-dot').className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]";
                 document.getElementById('status-text').innerText = "Cloud Active";
-                document.getElementById('status-text').className = "text-green-500";
             }
         }
 
-        // 3. Cloud Sync (Upload & Download)
-        async function syncToCloud(fileName, blobData) {
+        // --- CLOUD LOGIC ---
+        async function syncToCloud(fileName, uint8Array) {
             const token = localStorage.getItem("dbx_token");
             if (!token) return;
-            console.log("Upload zu Dropbox läuft...");
             await fetch('https://content.dropboxapi.com/2/files/upload', {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`, 
-                    'Dropbox-API-Arg': JSON.stringify({ path: '/' + fileName + '.sav', mode: 'overwrite' }), 
-                    'Content-Type': 'application/octet-stream' 
-                },
-                body: blobData
+                headers: { 'Authorization': `Bearer ${token}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/' + fileName + '.sav', mode: 'overwrite' }), 'Content-Type': 'application/octet-stream' },
+                body: uint8Array
             });
         }
 
@@ -112,32 +97,45 @@
             const token = localStorage.getItem("dbx_token");
             if (!token) return null;
             try {
-                const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+                const res = await fetch('https://content.dropboxapi.com/2/files/download', {
                     method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${token}`, 
-                        'Dropbox-API-Arg': JSON.stringify({ path: '/' + fileName + '.sav' }) 
-                    }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Dropbox-API-Arg': JSON.stringify({ path: '/' + fileName + '.sav' }) }
                 });
-                if (!response.ok) return null;
-                return await response.arrayBuffer();
+                return res.ok ? await res.arrayBuffer() : null;
             } catch (e) { return null; }
         }
 
-        // 4. Bibliothek verwalten
+        // --- MANUELLE SAVE LOGIK ---
+        function downloadCurrentSave() {
+            if (!lastCapturedState) return alert("Kein Spielstand im Speicher. Bitte erst im Spiel speichern!");
+            const blob = new Blob([lastCapturedState], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${currentFileName}.sav`;
+            a.click();
+        }
+
+        async function importLocalSave(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const buffer = await file.arrayBuffer();
+            // Dem Emulator mitteilen, dass er einen neuen State laden soll
+            // Hinweis: EmulatorJS muss laufen, um das zur Laufzeit zu triggern. 
+            // Am sichersten ist es, den Import vor dem Start zu machen oder die Seite neu zu laden.
+            alert("Save geladen. Starte das Spiel neu, um ihn zu nutzen!");
+            syncToCloud(currentFileName, new Uint8Array(buffer));
+        }
+
+        // --- LIBRARY UI ---
         function addGame() {
             const name = document.getElementById('game-name').value;
             const data = document.getElementById('game-url').value;
             const core = document.getElementById('game-core').value;
-            if(!name || !data) return alert("Bitte Name und URL eingeben!");
-            
+            if(!name || !data) return;
             const tx = db.transaction("games", "readwrite");
             tx.objectStore("games").add({ name, data, core });
-            tx.oncomplete = () => {
-                document.getElementById('game-name').value = "";
-                document.getElementById('game-url').value = "";
-                renderLibrary();
-            };
+            tx.oncomplete = () => { renderLibrary(); };
         }
 
         function renderLibrary() {
@@ -145,52 +143,44 @@
             container.innerHTML = "";
             db.transaction("games").objectStore("games").getAll().onsuccess = e => {
                 e.target.result.forEach(game => {
-                    const card = document.createElement('div');
-                    card.className = "game-card bg-slate-800 border border-slate-700 p-4 rounded-xl cursor-pointer hover:border-blue-500";
-                    card.innerHTML = `
-                        <div class="h-24 bg-slate-900 rounded-lg mb-3 flex items-center justify-center text-2xl">🎮</div>
-                        <h3 class="font-bold text-sm truncate">${game.name}</h3>
-                        <p class="text-[10px] text-slate-500 uppercase mt-1">${game.core}</p>
-                    `;
-                    card.onclick = () => launchGame(game.name);
-                    container.appendChild(card);
+                    const div = document.createElement('div');
+                    div.className = "game-card bg-slate-800 border border-slate-700 p-4 rounded-xl cursor-pointer text-center";
+                    div.innerHTML = `<div class="text-3xl mb-2">🕹️</div><div class="font-bold text-sm">${game.name}</div><div class="text-[10px] text-slate-500">${game.core}</div>`;
+                    div.onclick = () => launchGame(game.name);
+                    container.appendChild(div);
                 });
             };
         }
 
-        // 5. Spiel-Start Logik
+        // --- EMULATOR LAUNCH ---
         async function launchGame(name) {
             db.transaction("games").objectStore("games").get(name).onsuccess = async e => {
                 const game = e.target.result;
                 currentFileName = game.name;
-                
                 document.getElementById('emu-layer').style.display = 'block';
-                
-                // Cloud Save laden
-                const cloudState = await loadFromCloud(currentFileName);
+
+                const cloudBuffer = await loadFromCloud(currentFileName);
                 
                 window.EJS_player = '#game-container';
                 window.EJS_core = game.core;
                 window.EJS_gameUrl = game.data;
                 window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
                 window.EJS_startOnLoaded = true;
-                
-                if (cloudState) {
-                    window.EJS_state = new Uint8Array(cloudState);
-                    console.log("Cloud-Save geladen!");
+
+                if (cloudBuffer) {
+                    window.EJS_state = new Uint8Array(cloudBuffer);
+                    lastCapturedState = window.EJS_state;
                 }
 
-                window.EJS_onSaveState = (d) => syncToCloud(currentFileName, d.state);
+                window.EJS_onSaveState = (d) => {
+                    lastCapturedState = d.state; // Für den manuellen Download merken
+                    syncToCloud(currentFileName, d.state); // Automatisch in die Cloud
+                };
 
                 const s = document.createElement('script');
                 s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
                 document.body.appendChild(s);
             };
-        }
-
-        function closeEmulator() {
-            // Seite neu laden ist bei EmulatorJS am sichersten, um Instanzen zu stoppen
-            location.reload();
         }
     </script>
 </body>
